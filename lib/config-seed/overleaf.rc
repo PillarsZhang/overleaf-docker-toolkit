@@ -2,6 +2,10 @@
 
 PROJECT_NAME=overleaf
 
+# It is recommended to use this option under Docker Desktop for Windows (WSL2), 
+# as cross-container mounts become broken after restarts.
+DOCKER_NAMED_VOLUMES=true
+
 # Sharelatex container
 # Uncomment the SHARELATEX_IMAGE_NAME variable to use a user-defined image.
 # SHARELATEX_IMAGE_NAME=sharelatex/sharelatex

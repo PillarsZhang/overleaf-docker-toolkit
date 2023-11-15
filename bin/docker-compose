@@ -19,7 +19,11 @@ fi
 source "$TOOLKIT_ROOT/lib/shared-functions.sh"
 
 function build_environment() {
-  canonicalize_data_paths
+  if [[ "$DOCKER_NAMED_VOLUMES" = "true" ]]; then
+    convert_to_docker_volume_names
+  else
+    canonicalize_data_paths
+  fi
   set_base_vars
 
   if [[ $REDIS_ENABLED == "true" ]]; then
@@ -52,10 +56,24 @@ function canonicalize_data_paths() {
   GIT_BRIDGE_DATA_PATH=$(cd "$TOOLKIT_ROOT"; realpath "$GIT_BRIDGE_DATA_PATH")
 }
 
+function convert_to_docker_volume_names() {
+  SHARELATEX_DATA_PATH=$(echo "$SHARELATEX_DATA_PATH" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-zA-Z0-9._-]/__/g')
+  MONGO_DATA_PATH=$(echo "$MONGO_DATA_PATH" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-zA-Z0-9._-]/__/g')
+  MONGO_CONFIG_DATA_PATH=$(echo "$MONGO_CONFIG_DATA_PATH" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-zA-Z0-9._-]/__/g')
+  REDIS_DATA_PATH=$(echo "$REDIS_DATA_PATH" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-zA-Z0-9._-]/__/g')
+  GIT_BRIDGE_DATA_PATH=$(echo "$GIT_BRIDGE_DATA_PATH" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-zA-Z0-9._-]/__/g')
+}
+
 # Set environment variables for docker-compose.base.yml
 function set_base_vars() {
   DOCKER_COMPOSE_FLAGS=(-f "$TOOLKIT_ROOT/lib/docker-compose.base.yml")
-
+  if [[ "$DOCKER_NAMED_VOLUMES" = "true" ]]; then
+    echo "---" > "$TOOLKIT_ROOT/data/docker-compose.named-volumes.yml"
+    echo "version: '2.2'" >> "$TOOLKIT_ROOT/data/docker-compose.named-volumes.yml"
+    echo "volumes:" >> "$TOOLKIT_ROOT/data/docker-compose.named-volumes.yml"
+    echo "    $SHARELATEX_DATA_PATH:" >> "$TOOLKIT_ROOT/data/docker-compose.named-volumes.yml"
+    DOCKER_COMPOSE_FLAGS+=(-f "$TOOLKIT_ROOT/data/docker-compose.named-volumes.yml")
+  fi
   local image_name
   if [[ -n ${SHARELATEX_IMAGE_NAME:-} ]]; then
     image_name="$SHARELATEX_IMAGE_NAME"
@@ -96,6 +114,9 @@ function set_base_vars() {
 # Set environment variables for docker-compose.redis.yml
 function set_redis_vars() {
   DOCKER_COMPOSE_FLAGS+=(-f "$TOOLKIT_ROOT/lib/docker-compose.redis.yml")
+  if [[ "$DOCKER_NAMED_VOLUMES" = "true" ]]; then
+    echo "    $REDIS_DATA_PATH:" >> "$TOOLKIT_ROOT/data/docker-compose.named-volumes.yml"
+  fi
   export REDIS_IMAGE
   export REDIS_DATA_PATH
 }
@@ -103,6 +124,10 @@ function set_redis_vars() {
 # Set environment variables for docker-compose.mongo.yml
 function set_mongo_vars() {
   DOCKER_COMPOSE_FLAGS+=(-f "$TOOLKIT_ROOT/lib/docker-compose.mongo.yml")
+  if [[ "$DOCKER_NAMED_VOLUMES" = "true" ]]; then
+    echo "    $MONGO_DATA_PATH:" >> "$TOOLKIT_ROOT/data/docker-compose.named-volumes.yml"
+    echo "    $MONGO_CONFIG_DATA_PATH:" >> "$TOOLKIT_ROOT/data/docker-compose.named-volumes.yml"
+  fi
 
   if [[ $MONGO_ENABLED == "true" && $IMAGE_VERSION_MAJOR -ge 4 ]]; then
     MONGO_ARGS="--replSet overleaf"
@@ -162,6 +187,10 @@ function set_git_bridge_vars() {
   fi
 
   DOCKER_COMPOSE_FLAGS+=(-f "$TOOLKIT_ROOT/lib/docker-compose.git-bridge.yml")
+  if [[ "$DOCKER_NAMED_VOLUMES" = "true" ]]; then
+    echo "    $GIT_BRIDGE_DATA_PATH:" >> "$TOOLKIT_ROOT/data/docker-compose.named-volumes.yml"
+  fi
+
   export GIT_BRIDGE_API_BASE_URL
   export GIT_BRIDGE_IMAGE=${image_name}
   export GIT_BRIDGE_DATA_PATH

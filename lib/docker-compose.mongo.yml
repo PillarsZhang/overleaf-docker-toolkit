@@ -9,6 +9,7 @@ services:
         container_name: mongo
         volumes:
             - "${MONGO_DATA_PATH}:/data/db"
+            - "${MONGO_CONFIG_DATA_PATH}:/data/configdb"
         expose:
             - 27017
         healthcheck:

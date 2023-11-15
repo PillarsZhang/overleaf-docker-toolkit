@@ -47,6 +47,7 @@ function build_environment() {
 function canonicalize_data_paths() {
   SHARELATEX_DATA_PATH=$(cd "$TOOLKIT_ROOT"; realpath "$SHARELATEX_DATA_PATH")
   MONGO_DATA_PATH=$(cd "$TOOLKIT_ROOT"; realpath "$MONGO_DATA_PATH")
+  MONGO_CONFIG_DATA_PATH=$(cd "$TOOLKIT_ROOT"; realpath "$MONGO_CONFIG_DATA_PATH")
   REDIS_DATA_PATH=$(cd "$TOOLKIT_ROOT"; realpath "$REDIS_DATA_PATH")
   GIT_BRIDGE_DATA_PATH=$(cd "$TOOLKIT_ROOT"; realpath "$GIT_BRIDGE_DATA_PATH")
 }
@@ -111,6 +112,7 @@ function set_mongo_vars() {
   export MONGO_ARGS
 
   export MONGO_DATA_PATH
+  export MONGO_CONFIG_DATA_PATH
   export MONGO_IMAGE
 }
 
